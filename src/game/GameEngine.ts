@@ -66,6 +66,7 @@ export class GameEngine {
   private survivalTimer = 0;
   private ghostActive = false;
   private ghostTimer = 0;
+  private wanderTick = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     this.snake = new Snake(DEFAULT_GRID.cols, DEFAULT_GRID.rows);
@@ -322,6 +323,7 @@ export class GameEngine {
     this.survivalTimer = 0;
     this.ghostActive = false;
     this.ghostTimer = 0;
+    this.wanderTick = 0;
     this.phase = 'PLAYING';
     this.lastTime = performance.now();
     this.accumulator = 0;
@@ -329,6 +331,12 @@ export class GameEngine {
   }
 
   private tick(): void {
+    if (this.config.mode === 'WANDERER') {
+      this.wanderTick++;
+      if (this.wanderTick % 3 === 0) {
+        this.board.wanderFood(this.snake.segments);
+      }
+    }
     let dir = this.input.getNextDirection();
     if (this.config.mode === 'MIRROR') dir = MIRROR_FLIP[dir] as Direction;
     this.direction = dir;

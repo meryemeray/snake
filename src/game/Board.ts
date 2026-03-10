@@ -85,6 +85,28 @@ export class Board {
     return pos.x < 0 || pos.x >= this.cols || pos.y < 0 || pos.y >= this.rows;
   }
 
+  wanderFood(occupied: Point[]): void {
+    const dirs = [{ x: 0, y: -1 }, { x: 0, y: 1 }, { x: -1, y: 0 }, { x: 1, y: 0 }];
+    const occupiedSet = new Set([
+      ...occupied.map(p => `${p.x},${p.y}`),
+      ...this.walls.map(p => `${p.x},${p.y}`),
+    ]);
+    for (let i = 0; i < this.foods.length; i++) {
+      const f = this.foods[i];
+      const candidates = dirs
+        .map(d => ({ x: f.x + d.x, y: f.y + d.y }))
+        .filter(p =>
+          p.x >= 0 && p.x < this.cols && p.y >= 0 && p.y < this.rows
+          && !occupiedSet.has(`${p.x},${p.y}`)
+          && !this.foods.some((o, j) => j !== i && o.x === p.x && o.y === p.y)
+        );
+      if (candidates.length > 0) {
+        const pick = candidates[Math.floor(Math.random() * candidates.length)];
+        this.foods[i] = pick;
+      }
+    }
+  }
+
   eatFoodAt(head: Point): boolean {
     const idx = this.foods.findIndex(f => f.x === head.x && f.y === head.y);
     if (idx !== -1) {
