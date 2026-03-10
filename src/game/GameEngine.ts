@@ -62,6 +62,8 @@ export class GameEngine {
   private tickInterval = 150;
   private consecutivePoison = 0;
   private timedRemaining = 0;
+  private survivalRing = 0;
+  private survivalTimer = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     this.snake = new Snake(DEFAULT_GRID.cols, DEFAULT_GRID.rows);
@@ -314,6 +316,8 @@ export class GameEngine {
       this.board.spawnPortals(this.snake.segments);
     }
     this.timedRemaining = 60000;
+    this.survivalRing = 0;
+    this.survivalTimer = 0;
     this.phase = 'PLAYING';
     this.lastTime = performance.now();
     this.accumulator = 0;
@@ -340,7 +344,7 @@ export class GameEngine {
       this.die();
       return;
     }
-    if (this.config.mode === 'MAZE' && this.board.isWall(newHead)) {
+    if ((this.config.mode === 'MAZE' || this.config.mode === 'SURVIVAL') && this.board.isWall(newHead)) {
       this.die();
       return;
     }
@@ -429,6 +433,18 @@ export class GameEngine {
           this.phase = 'GAME_OVER';
           this.audio.playLevelUp();
           this.storage.save(this.score);
+        }
+      }
+      if (this.config.mode === 'SURVIVAL') {
+        this.survivalTimer += dt;
+        if (this.survivalTimer >= 5000) {
+          this.survivalTimer -= 5000;
+          this.board.addSurvivalRing(this.survivalRing);
+          this.survivalRing++;
+          if (this.board.isWall(this.snake.segments[0])) {
+            this.die();
+          }
+          this.board.respawnTrappedFood();
         }
       }
       this.accumulator += dt;

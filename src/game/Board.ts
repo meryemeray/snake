@@ -111,6 +111,20 @@ export class Board {
     this.walls = [];
   }
 
+  respawnTrappedFood(): void {
+    const trapped = (p: Point) => this.isWall(p);
+    const trappedFoodCount = this.foods.filter(trapped).length;
+    this.foods = this.foods.filter(f => !trapped(f));
+    for (let i = 0; i < trappedFoodCount; i++) {
+      this.spawnOneFood([]);
+    }
+    const trappedPoisonCount = this.poisonFoods.filter(trapped).length;
+    this.poisonFoods = this.poisonFoods.filter(f => !trapped(f));
+    for (let i = 0; i < trappedPoisonCount; i++) {
+      this.spawnOnePoison([]);
+    }
+  }
+
   spawnPortals(occupied: Point[]): void {
     const freeCells = this.getFreeCells(occupied);
     if (freeCells.length >= 2) {
@@ -119,6 +133,22 @@ export class Board {
       const i2 = Math.floor(Math.random() * freeCells.length);
       const p2 = freeCells[i2];
       this.portals = [p1, p2];
+    }
+  }
+
+  addSurvivalRing(ring: number): void {
+    const minX = ring;
+    const maxX = this.cols - 1 - ring;
+    const minY = ring;
+    const maxY = this.rows - 1 - ring;
+    if (minX > maxX || minY > maxY) return;
+    for (let x = minX; x <= maxX; x++) {
+      if (!this.isWall({ x, y: minY })) this.walls.push({ x, y: minY });
+      if (!this.isWall({ x, y: maxY })) this.walls.push({ x, y: maxY });
+    }
+    for (let y = minY + 1; y < maxY; y++) {
+      if (!this.isWall({ x: minX, y })) this.walls.push({ x: minX, y });
+      if (!this.isWall({ x: maxX, y })) this.walls.push({ x: maxX, y });
     }
   }
 
