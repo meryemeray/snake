@@ -17,14 +17,36 @@ export class Snake {
     this.rows = rows;
   }
 
-  reset(): void {
-    const centerX = Math.floor(this.cols / 2);
+  reset(startLength = 3): void {
+    this.segments = [];
     const centerY = Math.floor(this.rows / 2);
-    this.segments = [
-      { x: centerX, y: centerY },
-      { x: centerX - 1, y: centerY },
-      { x: centerX - 2, y: centerY },
-    ];
+    const centerX = Math.floor(this.cols / 2);
+
+    if (startLength <= this.cols) {
+      for (let i = 0; i < startLength; i++) {
+        this.segments.push({ x: centerX - i, y: centerY });
+      }
+    } else {
+      let x = centerX;
+      let y = centerY;
+      let dx = -1;
+      for (let i = 0; i < startLength; i++) {
+        if (x < 0 || x >= this.cols) break;
+        if (y < 0 || y >= this.rows) break;
+        this.segments.push({ x, y });
+        const nextX = x + dx;
+        if (nextX < 0 || nextX >= this.cols) {
+          y++;
+          dx = -dx;
+        } else {
+          x = nextX;
+        }
+      }
+    }
+
+    if (this.segments.length === 0) {
+      this.segments.push({ x: centerX, y: centerY });
+    }
     this.growing = false;
   }
 
@@ -56,6 +78,12 @@ export class Snake {
 
   grow(): void {
     this.growing = true;
+  }
+
+  shrink(): void {
+    if (this.segments.length > 1) {
+      this.segments.pop();
+    }
   }
 
   checkSelfCollision(): boolean {

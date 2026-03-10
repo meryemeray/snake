@@ -290,7 +290,11 @@ export class GameEngine {
   }
 
   private startGame(): void {
-    this.snake.reset();
+    const grid = this.config.grid;
+    const startLen = this.config.mode === 'SHRINK'
+      ? Math.floor((grid.cols * grid.rows) / 2)
+      : 3;
+    this.snake.reset(startLen);
     this.levelManager.reset();
     this.particles.clear();
     this.score = 0;
@@ -315,15 +319,26 @@ export class GameEngine {
     }
 
     if (this.board.eatFoodAt(newHead)) {
-      this.snake.grow();
+      if (this.config.mode === 'SHRINK') {
+        this.snake.shrink();
+      } else {
+        this.snake.grow();
+      }
       this.score++;
       this.board.spawnOneFood(this.snake.segments);
       this.particles.emit(newHead.x, newHead.y, 'eat');
       this.audio.playEat();
 
+      if (this.config.mode === 'SHRINK' && this.snake.segments.length <= 1) {
+        this.phase = 'GAME_OVER';
+        this.audio.playLevelUp();
+        this.storage.save(this.score);
+        return;
+      }
+
       if (this.config.mode === 'SPEED') {
         this.tickInterval = Math.max(35, this.tickInterval - 2);
-      } else {
+      } else if (this.config.mode !== 'SHRINK') {
         this.tickInterval = this.levelManager.getTickInterval(this.score);
         if (this.levelManager.consumeLevelUp()) {
           this.audio.playLevelUp();
