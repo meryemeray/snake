@@ -54,10 +54,12 @@ export class Renderer {
     }
   }
 
-  drawSnake(segments: Point[], direction: Direction): void {
+  drawSnake(segments: Point[], direction: Direction, opacity = 1): void {
     const ctx = this.ctx;
     const cs = this.cellSize;
     const inset = Math.max(1, Math.floor(cs * 0.05));
+    const prevAlpha = ctx.globalAlpha;
+    ctx.globalAlpha = opacity;
 
     for (let i = 0; i < segments.length; i++) {
       const seg = segments[i];
@@ -99,6 +101,7 @@ export class Renderer {
         }
       }
     }
+    ctx.globalAlpha = prevAlpha;
   }
 
   drawWalls(walls: Point[]): void {

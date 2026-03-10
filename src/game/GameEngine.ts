@@ -64,6 +64,8 @@ export class GameEngine {
   private timedRemaining = 0;
   private survivalRing = 0;
   private survivalTimer = 0;
+  private ghostActive = false;
+  private ghostTimer = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     this.snake = new Snake(DEFAULT_GRID.cols, DEFAULT_GRID.rows);
@@ -318,6 +320,8 @@ export class GameEngine {
     this.timedRemaining = 60000;
     this.survivalRing = 0;
     this.survivalTimer = 0;
+    this.ghostActive = false;
+    this.ghostTimer = 0;
     this.phase = 'PLAYING';
     this.lastTime = performance.now();
     this.accumulator = 0;
@@ -340,7 +344,7 @@ export class GameEngine {
       this.die();
       return;
     }
-    if (this.snake.checkSelfCollision()) {
+    if (!this.ghostActive && this.snake.checkSelfCollision()) {
       this.die();
       return;
     }
@@ -447,6 +451,13 @@ export class GameEngine {
           this.board.respawnTrappedFood();
         }
       }
+      if (this.config.mode === 'GHOST') {
+        this.ghostTimer += dt;
+        if (this.ghostTimer >= 3000) {
+          this.ghostTimer -= 3000;
+          this.ghostActive = !this.ghostActive;
+        }
+      }
       this.accumulator += dt;
       while (this.accumulator >= this.tickInterval) {
         this.tick();
@@ -473,7 +484,7 @@ export class GameEngine {
       if (this.board.poisonFoods.length > 0) {
         this.renderer.drawFoods(this.board.poisonFoods, timestamp, COLORS.POISON);
       }
-      this.renderer.drawSnake(this.snake.segments, this.direction);
+      this.renderer.drawSnake(this.snake.segments, this.direction, this.ghostActive ? 0.3 : 1);
       this.renderer.drawParticles(this.particles);
       const timer = this.config.mode === 'TIMED' ? this.timedRemaining : undefined;
       this.renderer.drawHUD(this.score, this.storage.getHighScore(), this.levelManager.level, timer);
