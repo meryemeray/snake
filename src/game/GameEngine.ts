@@ -309,6 +309,10 @@ export class GameEngine {
     if (this.config.mode === 'POISON') {
       this.board.spawnAllPoison(this.config.foodCount, this.snake.segments);
     }
+    this.board.portals = null;
+    if (this.config.mode === 'PORTAL') {
+      this.board.spawnPortals(this.snake.segments);
+    }
     this.timedRemaining = 60000;
     this.phase = 'PLAYING';
     this.lastTime = performance.now();
@@ -339,6 +343,17 @@ export class GameEngine {
     if (this.config.mode === 'MAZE' && this.board.isWall(newHead)) {
       this.die();
       return;
+    }
+
+    if (this.config.mode === 'PORTAL') {
+      const exit = this.board.getPortalExit(newHead);
+      if (exit) {
+        newHead.x = exit.x;
+        newHead.y = exit.y;
+        this.snake.segments[0] = newHead;
+        this.particles.emit(exit.x, exit.y, 'eat');
+        this.board.spawnPortals(this.snake.segments);
+      }
     }
 
     if (this.config.mode === 'POISON' && this.board.eatPoisonAt(newHead)) {
@@ -435,6 +450,9 @@ export class GameEngine {
       this.drawSettingsScreen();
     } else {
       this.renderer.drawWalls(this.board.walls);
+      if (this.board.portals) {
+        this.renderer.drawPortals(this.board.portals, timestamp);
+      }
       this.renderer.drawFoods(this.board.foods, timestamp);
       if (this.board.poisonFoods.length > 0) {
         this.renderer.drawFoods(this.board.poisonFoods, timestamp, COLORS.POISON);

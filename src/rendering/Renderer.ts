@@ -109,6 +109,17 @@ export class Renderer {
     }
   }
 
+  drawPortals(portals: [Point, Point], timestamp: number): void {
+    const cs = this.cellSize;
+    const pulse = 0.7 + 0.3 * Math.sin(timestamp * 0.008);
+    const size = cs * pulse;
+    const offset = (cs - size) / 2;
+    this.ctx.fillStyle = COLORS.PORTAL;
+    for (const p of portals) {
+      this.ctx.fillRect(p.x * cs + offset, p.y * cs + offset, size, size);
+    }
+  }
+
   drawFoods(foods: Point[], timestamp: number, color = COLORS.FOOD): void {
     this.foodPulse = timestamp;
     const cs = this.cellSize;

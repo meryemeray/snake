@@ -4,6 +4,7 @@ export class Board {
   foods: Point[] = [];
   poisonFoods: Point[] = [];
   walls: Point[] = [];
+  portals: [Point, Point] | null = null;
   private cols: number;
   private rows: number;
   private foodCount: number;
@@ -24,11 +25,13 @@ export class Board {
   }
 
   private getFreeCells(occupied: Point[]): Point[] {
+    const portalPts = this.portals ? [this.portals[0], this.portals[1]] : [];
     const occupiedSet = new Set([
       ...occupied.map(p => `${p.x},${p.y}`),
       ...this.foods.map(p => `${p.x},${p.y}`),
       ...this.poisonFoods.map(p => `${p.x},${p.y}`),
       ...this.walls.map(p => `${p.x},${p.y}`),
+      ...portalPts.map(p => `${p.x},${p.y}`),
     ]);
     const freeCells: Point[] = [];
     for (let x = 0; x < this.cols; x++) {
@@ -106,5 +109,24 @@ export class Board {
 
   clearWalls(): void {
     this.walls = [];
+  }
+
+  spawnPortals(occupied: Point[]): void {
+    const freeCells = this.getFreeCells(occupied);
+    if (freeCells.length >= 2) {
+      const i1 = Math.floor(Math.random() * freeCells.length);
+      const p1 = freeCells.splice(i1, 1)[0];
+      const i2 = Math.floor(Math.random() * freeCells.length);
+      const p2 = freeCells[i2];
+      this.portals = [p1, p2];
+    }
+  }
+
+  getPortalExit(head: Point): Point | null {
+    if (!this.portals) return null;
+    const [a, b] = this.portals;
+    if (head.x === a.x && head.y === a.y) return { x: b.x, y: b.y };
+    if (head.x === b.x && head.y === b.y) return { x: a.x, y: a.y };
+    return null;
   }
 }

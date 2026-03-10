@@ -26,6 +26,7 @@ export const COLORS = {
   HIGHLIGHT:  '#9bbc0f',
   WALL:       '#306230',
   POISON:     '#5a1a1a',
+  PORTAL:     '#5a3a8a',
 };
 
 export const OPPOSITE: Record<string, string> = {
