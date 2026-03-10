@@ -36,7 +36,7 @@ export class InputManager {
         if (inInput && e.key.startsWith('Arrow')) break;
         this.enqueue('RIGHT'); this.onNavigate?.('RIGHT'); e.preventDefault(); break;
       case 'Escape': case 'p': case 'P': this.onPause?.(); break;
-      case 'Enter': case ' ': this.onEnter?.(); e.preventDefault(); break;
+      case 'Enter': case ' ': if (!inInput) { this.onEnter?.(); e.preventDefault(); } break;
       case 'm': case 'M': this.onMute?.(); break;
     }
   }

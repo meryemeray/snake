@@ -73,7 +73,7 @@ export class GameEngine {
 
     const blurAndEnter = (el: HTMLInputElement) => {
       el.addEventListener('keydown', (e: KeyboardEvent) => {
-        if (e.key === 'Enter') { el.blur(); this.handleEnter(); }
+        if (e.key === 'Enter') { e.stopPropagation(); el.blur(); this.handleEnter(); }
       });
     };
     blurAndEnter(this.gridWidthInput);
@@ -149,16 +149,17 @@ export class GameEngine {
     const gap = 10;
 
     this.gridWidthInput.style.top = `${h * 0.40}px`;
-    this.gridWidthInput.style.left = `${w / 2 - 60 - gap / 2}px`;
+    this.gridWidthInput.style.left = `${w / 2 - 80 - gap / 2}px`;
     this.gridWidthInput.style.transform = 'none';
-    this.gridWidthInput.style.width = '60px';
+    this.gridWidthInput.style.width = '80px';
 
     this.gridHeightInput.style.top = `${h * 0.40}px`;
     this.gridHeightInput.style.left = `${w / 2 + gap / 2}px`;
     this.gridHeightInput.style.transform = 'none';
-    this.gridHeightInput.style.width = '60px';
+    this.gridHeightInput.style.width = '80px';
 
-    this.foodInput.style.top = `${h * 0.63}px`;
+    this.foodInput.style.top = `${h * 0.68}px`;
+    this.foodInput.style.width = '80px';
 
     if (showGrid && this.settingsRow === 'grid') {
       this.gridWidthInput.focus();
