@@ -145,7 +145,7 @@ export class Renderer {
     this.ctx.fillRect(0, 0, this.canvasW, this.canvasH);
   }
 
-  drawHUD(score: number, highScore: number, level: number): void {
+  drawHUD(score: number, highScore: number, level: number, timer?: number): void {
     const ctx = this.ctx;
     ctx.fillStyle = COLORS.TEXT;
     ctx.font = '8px "Press Start 2P", monospace';
@@ -154,7 +154,12 @@ export class Renderer {
     ctx.fillText(`SCR:${score}`, 4, 4);
 
     ctx.textAlign = 'center';
-    ctx.fillText(`LV:${level}`, this.canvasW / 2, 4);
+    if (timer !== undefined) {
+      const secs = Math.ceil(timer / 1000);
+      ctx.fillText(`${secs}s`, this.canvasW / 2, 4);
+    } else {
+      ctx.fillText(`LV:${level}`, this.canvasW / 2, 4);
+    }
 
     ctx.textAlign = 'right';
     ctx.fillText(`HI:${highScore}`, this.canvasW - 4, 4);

@@ -61,6 +61,7 @@ export class GameEngine {
   private accumulator = 0;
   private tickInterval = 150;
   private consecutivePoison = 0;
+  private timedRemaining = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     this.snake = new Snake(DEFAULT_GRID.cols, DEFAULT_GRID.rows);
@@ -308,6 +309,7 @@ export class GameEngine {
     if (this.config.mode === 'POISON') {
       this.board.spawnAllPoison(this.config.foodCount, this.snake.segments);
     }
+    this.timedRemaining = 60000;
     this.phase = 'PLAYING';
     this.lastTime = performance.now();
     this.accumulator = 0;
@@ -357,7 +359,13 @@ export class GameEngine {
       } else {
         this.snake.grow();
       }
-      this.score++;
+      if (this.config.mode === 'TIMED') {
+        const secsLeft = this.timedRemaining / 1000;
+        const multiplier = secsLeft <= 10 ? Math.ceil(5 - (secsLeft / 10) * 4) : 1;
+        this.score += multiplier;
+      } else {
+        this.score++;
+      }
       this.board.spawnOneFood(this.snake.segments);
       this.particles.emit(newHead.x, newHead.y, 'eat');
       this.audio.playEat();
@@ -399,6 +407,15 @@ export class GameEngine {
     this.lastTime = timestamp;
 
     if (this.phase === 'PLAYING') {
+      if (this.config.mode === 'TIMED') {
+        this.timedRemaining -= dt;
+        if (this.timedRemaining <= 0) {
+          this.timedRemaining = 0;
+          this.phase = 'GAME_OVER';
+          this.audio.playLevelUp();
+          this.storage.save(this.score);
+        }
+      }
       this.accumulator += dt;
       while (this.accumulator >= this.tickInterval) {
         this.tick();
@@ -424,7 +441,8 @@ export class GameEngine {
       }
       this.renderer.drawSnake(this.snake.segments, this.direction);
       this.renderer.drawParticles(this.particles);
-      this.renderer.drawHUD(this.score, this.storage.getHighScore(), this.levelManager.level);
+      const timer = this.config.mode === 'TIMED' ? this.timedRemaining : undefined;
+      this.renderer.drawHUD(this.score, this.storage.getHighScore(), this.levelManager.level, timer);
 
       if (this.phase === 'PAUSED') {
         this.drawPauseScreen();
