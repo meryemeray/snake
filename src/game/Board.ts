@@ -85,7 +85,7 @@ export class Board {
     return pos.x < 0 || pos.x >= this.cols || pos.y < 0 || pos.y >= this.rows;
   }
 
-  wanderFood(occupied: Point[]): void {
+  private moveFoodItems(occupied: Point[], flee?: Point): void {
     const dirs = [{ x: 0, y: -1 }, { x: 0, y: 1 }, { x: -1, y: 0 }, { x: 1, y: 0 }];
     const occupiedSet = new Set([
       ...occupied.map(p => `${p.x},${p.y}`),
@@ -100,11 +100,26 @@ export class Board {
           && !occupiedSet.has(`${p.x},${p.y}`)
           && !this.foods.some((o, j) => j !== i && o.x === p.x && o.y === p.y)
         );
-      if (candidates.length > 0) {
-        const pick = candidates[Math.floor(Math.random() * candidates.length)];
-        this.foods[i] = pick;
+      if (candidates.length === 0) continue;
+      if (flee) {
+        const curDist = Math.abs(f.x - flee.x) + Math.abs(f.y - flee.y);
+        const farther = candidates.filter(p =>
+          Math.abs(p.x - flee.x) + Math.abs(p.y - flee.y) > curDist
+        );
+        const pool = farther.length > 0 ? farther : candidates;
+        this.foods[i] = pool[Math.floor(Math.random() * pool.length)];
+      } else {
+        this.foods[i] = candidates[Math.floor(Math.random() * candidates.length)];
       }
     }
+  }
+
+  wanderFood(occupied: Point[]): void {
+    this.moveFoodItems(occupied);
+  }
+
+  fleeFood(occupied: Point[], head: Point): void {
+    this.moveFoodItems(occupied, head);
   }
 
   eatFoodAt(head: Point): boolean {

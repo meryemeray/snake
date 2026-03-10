@@ -331,10 +331,14 @@ export class GameEngine {
   }
 
   private tick(): void {
-    if (this.config.mode === 'WANDERER') {
+    if (this.config.mode === 'WANDERER' || this.config.mode === 'RUNNER') {
       this.wanderTick++;
       if (this.wanderTick % 3 === 0) {
-        this.board.wanderFood(this.snake.segments);
+        if (this.config.mode === 'RUNNER') {
+          this.board.fleeFood(this.snake.segments, this.snake.segments[0]);
+        } else {
+          this.board.wanderFood(this.snake.segments);
+        }
       }
     }
     let dir = this.input.getNextDirection();
