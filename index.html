@@ -15,6 +15,29 @@
       <input id="grid-width-input" class="custom-input" type="number" placeholder="W (5-100)" min="15" max="100" />
       <input id="grid-height-input" class="custom-input" type="number" placeholder="H (5-100)" min="15" max="100" />
       <input id="food-input" class="custom-input" type="number" placeholder="1-50" min="1" max="50" />
+      <button id="help-btn" aria-label="Help">?</button>
+      <div id="help-modal">
+        <div id="help-content">
+          <h2>GAME MODES</h2>
+          <dl>
+            <dt>CLASSIC</dt><dd>Standard snake. Eat, grow, survive.</dd>
+            <dt>MIRROR</dt><dd>All directions are flipped!</dd>
+            <dt>SPEED</dt><dd>Gets faster with every food eaten.</dd>
+            <dt>SHRINK</dt><dd>Start huge. Eating shrinks you. Reach length 1 to win!</dd>
+            <dt>NO WALLS</dt><dd>Wrap around edges freely.</dd>
+            <dt>MAZE</dt><dd>Walls appear after each food. Don't get trapped.</dd>
+            <dt>POISON</dt><dd>Red food = poison. Loses points. 3 in a row = death.</dd>
+            <dt>TIMED</dt><dd>60 seconds. Food worth more as time runs out.</dd>
+            <dt>PORTAL</dt><dd>Two portals on the board. Step in one, exit the other.</dd>
+            <dt>SURVIVAL</dt><dd>Walls close in from the edges every 5 seconds.</dd>
+            <dt>GHOST</dt><dd>Periodically go transparent and pass through yourself.</dd>
+            <dt>WANDERER</dt><dd>Food wanders around randomly.</dd>
+            <dt>RUNNER</dt><dd>Food actively runs away from you.</dd>
+            <dt>REVERSE</dt><dd>Eating food reverses your snake.</dd>
+          </dl>
+          <p class="help-close-hint">Click anywhere to close</p>
+        </div>
+      </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
