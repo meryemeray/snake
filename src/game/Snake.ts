@@ -86,6 +86,19 @@ export class Snake {
     }
   }
 
+  reverse(): Direction {
+    this.segments.reverse();
+    const head = this.segments[0];
+    const neck = this.segments[1];
+    if (!neck) return 'RIGHT';
+    const dx = head.x - neck.x;
+    const dy = head.y - neck.y;
+    if (dx === 1) return 'RIGHT';
+    if (dx === -1) return 'LEFT';
+    if (dy === 1) return 'DOWN';
+    return 'UP';
+  }
+
   checkSelfCollision(): boolean {
     const head = this.head;
     return this.segments.slice(1).some(

@@ -423,6 +423,11 @@ export class GameEngine {
       if (this.config.mode === 'POISON') {
         this.board.spawnOnePoison(this.snake.segments);
       }
+
+      if (this.config.mode === 'REVERSE') {
+        this.direction = this.snake.reverse();
+        this.input.reset(this.direction);
+      }
     }
   }
 
