@@ -1,12 +1,21 @@
 import { Particle } from '../types';
-import { CELL_SIZE, COLORS } from '../constants';
+import { COLORS } from '../constants';
 
 export class ParticleSystem {
   private particles: Particle[] = [];
+  private cellSize: number;
+
+  constructor(cellSize: number) {
+    this.cellSize = cellSize;
+  }
+
+  setCellSize(cellSize: number): void {
+    this.cellSize = cellSize;
+  }
 
   emit(gridX: number, gridY: number, type: 'eat' | 'death'): void {
-    const cx = (gridX + 0.5) * CELL_SIZE;
-    const cy = (gridY + 0.5) * CELL_SIZE;
+    const cx = (gridX + 0.5) * this.cellSize;
+    const cy = (gridY + 0.5) * this.cellSize;
 
     const count = type === 'eat' ? 8 : 30;
     const speed = type === 'eat' ? 60 : 100;

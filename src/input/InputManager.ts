@@ -11,6 +11,7 @@ export class InputManager {
   onPause: (() => void) | null = null;
   onEnter: (() => void) | null = null;
   onMute: (() => void) | null = null;
+  onNavigate: ((dir: Direction) => void) | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     window.addEventListener('keydown', (e) => this.handleKeyDown(e));
@@ -19,11 +20,21 @@ export class InputManager {
   }
 
   private handleKeyDown(e: KeyboardEvent): void {
+    const inInput = document.activeElement instanceof HTMLInputElement;
+
     switch (e.key) {
-      case 'ArrowUp':    case 'w': case 'W': this.enqueue('UP');    e.preventDefault(); break;
-      case 'ArrowDown':  case 's': case 'S': this.enqueue('DOWN');  e.preventDefault(); break;
-      case 'ArrowLeft':  case 'a': case 'A': this.enqueue('LEFT');  e.preventDefault(); break;
-      case 'ArrowRight': case 'd': case 'D': this.enqueue('RIGHT'); e.preventDefault(); break;
+      case 'ArrowUp':    case 'w': case 'W':
+        if (inInput && e.key.startsWith('Arrow')) break;
+        this.enqueue('UP');    this.onNavigate?.('UP');    e.preventDefault(); break;
+      case 'ArrowDown':  case 's': case 'S':
+        if (inInput && e.key.startsWith('Arrow')) break;
+        this.enqueue('DOWN');  this.onNavigate?.('DOWN');  e.preventDefault(); break;
+      case 'ArrowLeft':  case 'a': case 'A':
+        if (inInput && e.key.startsWith('Arrow')) break;
+        this.enqueue('LEFT');  this.onNavigate?.('LEFT');  e.preventDefault(); break;
+      case 'ArrowRight': case 'd': case 'D':
+        if (inInput && e.key.startsWith('Arrow')) break;
+        this.enqueue('RIGHT'); this.onNavigate?.('RIGHT'); e.preventDefault(); break;
       case 'Escape': case 'p': case 'P': this.onPause?.(); break;
       case 'Enter': case ' ': this.onEnter?.(); e.preventDefault(); break;
       case 'm': case 'M': this.onMute?.(); break;

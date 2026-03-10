@@ -1,17 +1,25 @@
 import { Point, Direction } from '../types';
-import { GRID_COLS, GRID_ROWS } from '../constants';
 
 export class Snake {
   segments: Point[] = [];
   private growing = false;
+  private cols: number;
+  private rows: number;
 
-  constructor() {
+  constructor(cols: number, rows: number) {
+    this.cols = cols;
+    this.rows = rows;
     this.reset();
   }
 
+  setGridSize(cols: number, rows: number): void {
+    this.cols = cols;
+    this.rows = rows;
+  }
+
   reset(): void {
-    const centerX = Math.floor(GRID_COLS / 2);
-    const centerY = Math.floor(GRID_ROWS / 2);
+    const centerX = Math.floor(this.cols / 2);
+    const centerY = Math.floor(this.rows / 2);
     this.segments = [
       { x: centerX, y: centerY },
       { x: centerX - 1, y: centerY },

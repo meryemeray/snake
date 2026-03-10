@@ -10,7 +10,12 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <canvas id="game"></canvas>
+    <div id="game-wrapper">
+      <canvas id="game"></canvas>
+      <input id="grid-width-input" class="custom-input" type="number" placeholder="W (5-100)" min="15" max="100" />
+      <input id="grid-height-input" class="custom-input" type="number" placeholder="H (5-100)" min="15" max="100" />
+      <input id="food-input" class="custom-input" type="number" placeholder="1-50" min="1" max="50" />
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

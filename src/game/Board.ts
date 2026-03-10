@@ -1,15 +1,42 @@
 import { Point } from '../types';
-import { GRID_COLS, GRID_ROWS } from '../constants';
 
 export class Board {
-  food: Point = { x: 0, y: 0 };
+  foods: Point[] = [];
+  private cols: number;
+  private rows: number;
+  private foodCount: number;
 
-  spawnFood(occupied: Point[]): void {
-    const occupiedSet = new Set(occupied.map(p => `${p.x},${p.y}`));
+  constructor(cols: number, rows: number, foodCount = 1) {
+    this.cols = cols;
+    this.rows = rows;
+    this.foodCount = foodCount;
+  }
+
+  setGridSize(cols: number, rows: number): void {
+    this.cols = cols;
+    this.rows = rows;
+  }
+
+  setFoodCount(count: number): void {
+    this.foodCount = count;
+  }
+
+  spawnAllFood(occupied: Point[]): void {
+    this.foods = [];
+    for (let i = 0; i < this.foodCount; i++) {
+      this.spawnOneFood(occupied);
+    }
+  }
+
+  spawnOneFood(occupied: Point[]): void {
+    const occupiedSet = new Set([
+      ...occupied.map(p => `${p.x},${p.y}`),
+      ...this.foods.map(p => `${p.x},${p.y}`),
+    ]);
 
     const freeCells: Point[] = [];
-    for (let x = 0; x < GRID_COLS; x++) {
-      for (let y = 0; y < GRID_ROWS; y++) {
+    for (let x = 0; x < this.cols; x++) {
+      for (let y = 0; y < this.rows; y++) {
         if (!occupiedSet.has(`${x},${y}`)) {
           freeCells.push({ x, y });
         }
@@ -17,15 +44,20 @@ export class Board {
     }
 
     if (freeCells.length > 0) {
-      this.food = freeCells[Math.floor(Math.random() * freeCells.length)];
+      this.foods.push(freeCells[Math.floor(Math.random() * freeCells.length)]);
     }
   }
 
   isOutOfBounds(pos: Point): boolean {
-    return pos.x < 0 || pos.x >= GRID_COLS || pos.y < 0 || pos.y >= GRID_ROWS;
+    return pos.x < 0 || pos.x >= this.cols || pos.y < 0 || pos.y >= this.rows;
   }
 
-  isFoodEaten(head: Point): boolean {
-    return head.x === this.food.x && head.y === this.food.y;
+  eatFoodAt(head: Point): boolean {
+    const idx = this.foods.findIndex(f => f.x === head.x && f.y === head.y);
+    if (idx !== -1) {
+      this.foods.splice(idx, 1);
+      return true;
+    }
+    return false;
   }
 }

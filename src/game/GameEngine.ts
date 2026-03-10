@@ -1,5 +1,5 @@
-import { Direction, GamePhase } from '../types';
-import { CANVAS_HEIGHT, COLORS } from '../constants';
+import { Direction, GamePhase, GameConfig, GridPreset } from '../types';
+import { GRID_PRESETS, FOOD_PRESETS, DEFAULT_GRID, COLORS, GRID_LIMITS, FOOD_LIMITS } from '../constants';
 import { Snake } from './Snake';
 import { Board } from './Board';
 import { LevelManager } from './LevelManager';
@@ -9,10 +9,36 @@ import { InputManager } from '../input/InputManager';
 import { AudioManager } from '../audio/AudioManager';
 import { ScoreStorage } from '../storage/ScoreStorage';
 
+type SettingsRow = 'grid' | 'food';
+
+function clamp(val: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, Math.floor(val)));
+}
+
+function makeCustomGrid(cols: number, rows: number): GridPreset {
+  const c = clamp(cols, GRID_LIMITS.min, GRID_LIMITS.max);
+  const r = clamp(rows, GRID_LIMITS.min, GRID_LIMITS.max);
+  const cellSize = Math.max(4, Math.floor(500 / Math.max(c, r)));
+  return { label: 'CUSTOM', cols: c, rows: r, cellSize };
+}
+
 export class GameEngine {
   private phase: GamePhase = 'MENU';
   private score = 0;
   private direction: Direction = 'RIGHT';
+
+  private config: GameConfig = { grid: DEFAULT_GRID, foodCount: 1 };
+  private gridSelectIndex = 0;
+  private foodSelectIndex = 0;
+  private settingsRow: SettingsRow = 'grid';
+
+  private customGridW = 30;
+  private customGridH = 30;
+  private customFoodCount = 10;
+
+  private gridWidthInput: HTMLInputElement;
+  private gridHeightInput: HTMLInputElement;
+  private foodInput: HTMLInputElement;
 
   private snake: Snake;
   private board: Board;
@@ -28,20 +54,168 @@ export class GameEngine {
   private tickInterval = 150;
 
   constructor(canvas: HTMLCanvasElement) {
-    this.snake = new Snake();
-    this.board = new Board();
+    this.snake = new Snake(DEFAULT_GRID.cols, DEFAULT_GRID.rows);
+    this.board = new Board(DEFAULT_GRID.cols, DEFAULT_GRID.rows);
     this.levelManager = new LevelManager();
-    this.renderer = new Renderer(canvas);
-    this.particles = new ParticleSystem();
+    this.renderer = new Renderer(canvas, DEFAULT_GRID);
+    this.particles = new ParticleSystem(DEFAULT_GRID.cellSize);
     this.audio = new AudioManager();
     this.storage = new ScoreStorage();
     this.input = new InputManager(canvas);
 
+    this.gridWidthInput = document.getElementById('grid-width-input') as HTMLInputElement;
+    this.gridHeightInput = document.getElementById('grid-height-input') as HTMLInputElement;
+    this.foodInput = document.getElementById('food-input') as HTMLInputElement;
+
+    this.gridWidthInput.addEventListener('input', () => this.onGridInputChange());
+    this.gridHeightInput.addEventListener('input', () => this.onGridInputChange());
+    this.foodInput.addEventListener('input', () => this.onFoodInputChange());
+
+    const blurAndEnter = (el: HTMLInputElement) => {
+      el.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.key === 'Enter') { el.blur(); this.handleEnter(); }
+      });
+    };
+    blurAndEnter(this.gridWidthInput);
+    blurAndEnter(this.gridHeightInput);
+    blurAndEnter(this.foodInput);
+
     this.input.onPause = () => this.togglePause();
     this.input.onEnter = () => this.handleEnter();
     this.input.onMute = () => this.audio.toggleMute();
+    this.input.onNavigate = (dir) => this.handleNavigate(dir);
 
     requestAnimationFrame((t) => this.loop(t));
+  }
+
+  private clampInput(input: HTMLInputElement, min: number, max: number): number {
+    const raw = input.valueAsNumber;
+    if (!Number.isFinite(raw)) return min;
+    const clamped = clamp(raw, min, max);
+    if (raw !== clamped) {
+      input.value = String(clamped);
+      this.flashInput(input);
+    }
+    return clamped;
+  }
+
+  private flashInput(input: HTMLInputElement): void {
+    input.style.borderColor = '#ff4444';
+    input.style.boxShadow = '0 0 8px rgba(255, 68, 68, 0.6)';
+    setTimeout(() => {
+      input.style.borderColor = '';
+      input.style.boxShadow = '';
+    }, 600);
+  }
+
+  private onGridInputChange(): void {
+    const w = this.gridWidthInput.valueAsNumber;
+    const h = this.gridHeightInput.valueAsNumber;
+    if (Number.isFinite(w)) this.customGridW = clamp(w, GRID_LIMITS.min, GRID_LIMITS.max);
+    if (Number.isFinite(h)) this.customGridH = clamp(h, GRID_LIMITS.min, GRID_LIMITS.max);
+    this.config.grid = makeCustomGrid(this.customGridW, this.customGridH);
+  }
+
+  private onFoodInputChange(): void {
+    const val = this.foodInput.valueAsNumber;
+    if (!Number.isFinite(val)) return;
+    this.customFoodCount = clamp(val, FOOD_LIMITS.min, FOOD_LIMITS.max);
+    this.config.foodCount = this.customFoodCount;
+  }
+
+  private isGridCustom(): boolean {
+    return GRID_PRESETS[this.gridSelectIndex].label === 'CUSTOM';
+  }
+
+  private isFoodCustom(): boolean {
+    return FOOD_PRESETS[this.foodSelectIndex] === -1;
+  }
+
+  private isAnyGridInputFocused(): boolean {
+    return document.activeElement === this.gridWidthInput
+        || document.activeElement === this.gridHeightInput;
+  }
+
+  private updateInputVisibility(): void {
+    const showGrid = this.phase === 'SETTINGS' && this.isGridCustom();
+    const showFood = this.phase === 'SETTINGS' && this.isFoodCustom();
+
+    this.gridWidthInput.style.display = showGrid ? 'block' : 'none';
+    this.gridHeightInput.style.display = showGrid ? 'block' : 'none';
+    this.foodInput.style.display = showFood ? 'block' : 'none';
+
+    const h = this.renderer.height;
+    const w = this.renderer.width;
+    const gap = 10;
+
+    this.gridWidthInput.style.top = `${h * 0.40}px`;
+    this.gridWidthInput.style.left = `${w / 2 - 60 - gap / 2}px`;
+    this.gridWidthInput.style.transform = 'none';
+    this.gridWidthInput.style.width = '60px';
+
+    this.gridHeightInput.style.top = `${h * 0.40}px`;
+    this.gridHeightInput.style.left = `${w / 2 + gap / 2}px`;
+    this.gridHeightInput.style.transform = 'none';
+    this.gridHeightInput.style.width = '60px';
+
+    this.foodInput.style.top = `${h * 0.63}px`;
+
+    if (showGrid && this.settingsRow === 'grid') {
+      this.gridWidthInput.focus();
+    } else if (showFood && this.settingsRow === 'food') {
+      this.foodInput.focus();
+    }
+  }
+
+  private hideAllInputs(): void {
+    this.gridWidthInput.style.display = 'none';
+    this.gridHeightInput.style.display = 'none';
+    this.foodInput.style.display = 'none';
+    this.gridWidthInput.blur();
+    this.gridHeightInput.blur();
+    this.foodInput.blur();
+  }
+
+  private handleNavigate(dir: Direction): void {
+    if (this.phase !== 'SETTINGS') return;
+
+    const inGridInput = this.isAnyGridInputFocused();
+    const inFoodInput = document.activeElement === this.foodInput;
+
+    if (inGridInput || inFoodInput) {
+      if (dir === 'UP' || dir === 'DOWN') {
+        (document.activeElement as HTMLElement).blur();
+        this.settingsRow = this.settingsRow === 'grid' ? 'food' : 'grid';
+        this.updateInputVisibility();
+      }
+      return;
+    }
+
+    if (dir === 'UP' || dir === 'DOWN') {
+      this.settingsRow = this.settingsRow === 'grid' ? 'food' : 'grid';
+    }
+
+    if (dir === 'LEFT' || dir === 'RIGHT') {
+      const delta = dir === 'RIGHT' ? 1 : -1;
+
+      if (this.settingsRow === 'grid') {
+        this.gridSelectIndex = (this.gridSelectIndex + delta + GRID_PRESETS.length) % GRID_PRESETS.length;
+        if (!this.isGridCustom()) {
+          this.config.grid = GRID_PRESETS[this.gridSelectIndex];
+        } else {
+          this.config.grid = makeCustomGrid(this.customGridW, this.customGridH);
+        }
+      } else {
+        this.foodSelectIndex = (this.foodSelectIndex + delta + FOOD_PRESETS.length) % FOOD_PRESETS.length;
+        if (!this.isFoodCustom()) {
+          this.config.foodCount = FOOD_PRESETS[this.foodSelectIndex];
+        } else {
+          this.config.foodCount = this.customFoodCount;
+        }
+      }
+    }
+
+    this.updateInputVisibility();
   }
 
   private togglePause(): void {
@@ -54,11 +228,47 @@ export class GameEngine {
   }
 
   private handleEnter(): void {
-    if (this.phase === 'MENU' || this.phase === 'GAME_OVER') {
+    if (this.phase === 'MENU') {
+      this.phase = 'SETTINGS';
+      this.updateInputVisibility();
+    } else if (this.phase === 'SETTINGS') {
+      let corrected = false;
+
+      if (this.isGridCustom()) {
+        const oldW = this.gridWidthInput.valueAsNumber;
+        const oldH = this.gridHeightInput.valueAsNumber;
+        this.customGridW = this.clampInput(this.gridWidthInput, GRID_LIMITS.min, GRID_LIMITS.max);
+        this.customGridH = this.clampInput(this.gridHeightInput, GRID_LIMITS.min, GRID_LIMITS.max);
+        this.config.grid = makeCustomGrid(this.customGridW, this.customGridH);
+        if (oldW !== this.customGridW || oldH !== this.customGridH) corrected = true;
+      }
+      if (this.isFoodCustom()) {
+        const oldFood = this.foodInput.valueAsNumber;
+        this.customFoodCount = this.clampInput(this.foodInput, FOOD_LIMITS.min, FOOD_LIMITS.max);
+        this.config.foodCount = this.customFoodCount;
+        if (oldFood !== this.customFoodCount) corrected = true;
+      }
+
+      if (corrected) return;
+
+      this.hideAllInputs();
+      this.applyConfig();
       this.startGame();
+    } else if (this.phase === 'GAME_OVER') {
+      this.phase = 'SETTINGS';
+      this.updateInputVisibility();
     } else if (this.phase === 'PAUSED') {
       this.togglePause();
     }
+  }
+
+  private applyConfig(): void {
+    const grid = this.config.grid;
+    this.renderer.applyGrid(grid);
+    this.snake.setGridSize(grid.cols, grid.rows);
+    this.board.setGridSize(grid.cols, grid.rows);
+    this.board.setFoodCount(this.config.foodCount);
+    this.particles.setCellSize(grid.cellSize);
   }
 
   private startGame(): void {
@@ -68,7 +278,7 @@ export class GameEngine {
     this.particles.clear();
     this.score = 0;
     this.direction = 'RIGHT';
-    this.board.spawnFood(this.snake.segments);
+    this.board.spawnAllFood(this.snake.segments);
     this.phase = 'PLAYING';
     this.lastTime = performance.now();
     this.accumulator = 0;
@@ -84,10 +294,10 @@ export class GameEngine {
       return;
     }
 
-    if (this.board.isFoodEaten(newHead)) {
+    if (this.board.eatFoodAt(newHead)) {
       this.snake.grow();
       this.score++;
-      this.board.spawnFood(this.snake.segments);
+      this.board.spawnOneFood(this.snake.segments);
       this.particles.emit(newHead.x, newHead.y, 'eat');
       this.audio.playEat();
 
@@ -129,8 +339,10 @@ export class GameEngine {
 
     if (this.phase === 'MENU') {
       this.drawMenuScreen();
+    } else if (this.phase === 'SETTINGS') {
+      this.drawSettingsScreen();
     } else {
-      this.renderer.drawFood(this.board.food, timestamp);
+      this.renderer.drawFoods(this.board.foods, timestamp);
       this.renderer.drawSnake(this.snake.segments, this.direction);
       this.renderer.drawParticles(this.particles);
       this.renderer.drawHUD(this.score, this.storage.getHighScore(), this.levelManager.level);
@@ -146,25 +358,60 @@ export class GameEngine {
   }
 
   private drawMenuScreen(): void {
-    this.renderer.drawCenteredText('SNAKE', CANVAS_HEIGHT * 0.3, 24);
-    this.renderer.drawCenteredText('Press ENTER', CANVAS_HEIGHT * 0.55, 8);
-    this.renderer.drawCenteredText('to start', CANVAS_HEIGHT * 0.65, 8);
-    this.renderer.drawCenteredText('WASD / Arrows', CANVAS_HEIGHT * 0.8, 6, COLORS.TEXT_DIM);
-    this.renderer.drawCenteredText('P:Pause  M:Mute', CANVAS_HEIGHT * 0.88, 6, COLORS.TEXT_DIM);
+    const h = this.renderer.height;
+    this.renderer.drawCenteredText('SNAKE', h * 0.3, 24);
+    this.renderer.drawCenteredText('Press ENTER', h * 0.55, 8);
+    this.renderer.drawCenteredText('to start', h * 0.65, 8);
+    this.renderer.drawCenteredText('WASD / Arrows', h * 0.8, 6, COLORS.TEXT_DIM);
+    this.renderer.drawCenteredText('P:Pause  M:Mute', h * 0.88, 6, COLORS.TEXT_DIM);
+  }
+
+  private drawSettingsScreen(): void {
+    const h = this.renderer.height;
+    this.renderer.drawCenteredText('SETTINGS', h * 0.12, 14);
+
+    const gridActive = this.settingsRow === 'grid';
+    const foodActive = this.settingsRow === 'food';
+
+    this.renderer.drawCenteredText('GRID SIZE', h * 0.28, 8, gridActive ? COLORS.TEXT : COLORS.TEXT_DIM);
+    if (this.isGridCustom()) {
+      this.renderer.drawCenteredText('< CUSTOM >', h * 0.36, gridActive ? 10 : 8, gridActive ? COLORS.TEXT : COLORS.TEXT_DIM);
+      const sizeStr = `${this.customGridW}x${this.customGridH}`;
+      this.renderer.drawCenteredText(sizeStr, h * 0.46, 6, COLORS.TEXT_DIM);
+    } else {
+      const gridLabel = `< ${this.config.grid.label} >`;
+      const gridDetail = `${this.config.grid.cols}x${this.config.grid.rows}`;
+      this.renderer.drawCenteredText(gridLabel, h * 0.36, gridActive ? 10 : 8, gridActive ? COLORS.TEXT : COLORS.TEXT_DIM);
+      this.renderer.drawCenteredText(gridDetail, h * 0.43, 6, COLORS.TEXT_DIM);
+    }
+
+    this.renderer.drawCenteredText('FOOD COUNT', h * 0.55, 8, foodActive ? COLORS.TEXT : COLORS.TEXT_DIM);
+    if (this.isFoodCustom()) {
+      this.renderer.drawCenteredText('< CUSTOM >', h * 0.63, foodActive ? 10 : 8, foodActive ? COLORS.TEXT : COLORS.TEXT_DIM);
+      this.renderer.drawCenteredText(`${this.customFoodCount}`, h * 0.70, 6, COLORS.TEXT_DIM);
+    } else {
+      const foodLabel = `< ${this.config.foodCount} >`;
+      this.renderer.drawCenteredText(foodLabel, h * 0.63, foodActive ? 10 : 8, foodActive ? COLORS.TEXT : COLORS.TEXT_DIM);
+    }
+
+    this.renderer.drawCenteredText('Press ENTER', h * 0.82, 8);
+    this.renderer.drawCenteredText('to play', h * 0.89, 8);
   }
 
   private drawPauseScreen(): void {
+    const h = this.renderer.height;
     this.renderer.drawOverlay();
-    this.renderer.drawCenteredText('PAUSED', CANVAS_HEIGHT * 0.45, 16);
-    this.renderer.drawCenteredText('Press P or ESC', CANVAS_HEIGHT * 0.58, 8);
+    this.renderer.drawCenteredText('PAUSED', h * 0.45, 16);
+    this.renderer.drawCenteredText('Press P or ESC', h * 0.58, 8);
   }
 
   private drawGameOverScreen(): void {
+    const h = this.renderer.height;
     this.renderer.drawOverlay();
-    this.renderer.drawCenteredText('GAME OVER', CANVAS_HEIGHT * 0.3, 14);
-    this.renderer.drawCenteredText(`Score: ${this.score}`, CANVAS_HEIGHT * 0.45, 10);
-    this.renderer.drawCenteredText(`Best: ${this.storage.getHighScore()}`, CANVAS_HEIGHT * 0.55, 8);
-    this.renderer.drawCenteredText('Press ENTER', CANVAS_HEIGHT * 0.7, 8);
-    this.renderer.drawCenteredText('to restart', CANVAS_HEIGHT * 0.8, 8);
+    this.renderer.drawCenteredText('GAME OVER', h * 0.3, 14);
+    this.renderer.drawCenteredText(`Score: ${this.score}`, h * 0.45, 10);
+    this.renderer.drawCenteredText(`Best: ${this.storage.getHighScore()}`, h * 0.55, 8);
+    this.renderer.drawCenteredText('Press ENTER', h * 0.7, 8);
+    this.renderer.drawCenteredText('to continue', h * 0.8, 8);
   }
 }

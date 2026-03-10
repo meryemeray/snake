@@ -1,8 +1,17 @@
-export const GRID_COLS = 20;
-export const GRID_ROWS = 20;
-export const CELL_SIZE = 20;
-export const CANVAS_WIDTH = GRID_COLS * CELL_SIZE;
-export const CANVAS_HEIGHT = GRID_ROWS * CELL_SIZE;
+import { GridPreset } from './types';
+
+export const GRID_PRESETS: GridPreset[] = [
+  { label: 'SMALL',  cols: 20, rows: 20, cellSize: 20 },
+  { label: 'MEDIUM', cols: 35, rows: 35, cellSize: 14 },
+  { label: 'LARGE',  cols: 50, rows: 50, cellSize: 10 },
+  { label: 'CUSTOM', cols: 0,  rows: 0,  cellSize: 0 },
+];
+
+export const DEFAULT_GRID = GRID_PRESETS[0];
+export const FOOD_PRESETS = [1, 3, 5, 15, -1]; // -1 = custom
+
+export const GRID_LIMITS = { min: 15, max: 100 };
+export const FOOD_LIMITS = { min: 1, max: 50 };
 export const BASE_TICK_MS = 150;
 
 export const COLORS = {
@@ -14,6 +23,7 @@ export const COLORS = {
   TEXT:       '#9bbc0f',
   TEXT_DIM:   '#306230',
   OVERLAY:    'rgba(15, 56, 15, 0.85)',
+  HIGHLIGHT:  '#9bbc0f',
 };
 
 export const OPPOSITE: Record<string, string> = {

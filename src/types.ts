@@ -5,7 +5,7 @@ export interface Point {
 
 export type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
 
-export type GamePhase = 'MENU' | 'PLAYING' | 'PAUSED' | 'GAME_OVER';
+export type GamePhase = 'MENU' | 'SETTINGS' | 'PLAYING' | 'PAUSED' | 'GAME_OVER';
 
 export interface Particle {
   x: number;
@@ -20,4 +20,16 @@ export interface Particle {
 export interface LeaderboardEntry {
   score: number;
   date: string;
+}
+
+export interface GridPreset {
+  label: string;
+  cols: number;
+  rows: number;
+  cellSize: number;
+}
+
+export interface GameConfig {
+  grid: GridPreset;
+  foodCount: number;
 }
