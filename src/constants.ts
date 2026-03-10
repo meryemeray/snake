@@ -25,6 +25,7 @@ export const COLORS = {
   OVERLAY:    'rgba(15, 56, 15, 0.85)',
   HIGHLIGHT:  '#9bbc0f',
   WALL:       '#306230',
+  POISON:     '#5a1a1a',
 };
 
 export const OPPOSITE: Record<string, string> = {

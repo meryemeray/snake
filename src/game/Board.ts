@@ -2,6 +2,7 @@ import { Point } from '../types';
 
 export class Board {
   foods: Point[] = [];
+  poisonFoods: Point[] = [];
   walls: Point[] = [];
   private cols: number;
   private rows: number;
@@ -22,20 +23,13 @@ export class Board {
     this.foodCount = count;
   }
 
-  spawnAllFood(occupied: Point[]): void {
-    this.foods = [];
-    for (let i = 0; i < this.foodCount; i++) {
-      this.spawnOneFood(occupied);
-    }
-  }
-
-  spawnOneFood(occupied: Point[]): void {
+  private getFreeCells(occupied: Point[]): Point[] {
     const occupiedSet = new Set([
       ...occupied.map(p => `${p.x},${p.y}`),
       ...this.foods.map(p => `${p.x},${p.y}`),
+      ...this.poisonFoods.map(p => `${p.x},${p.y}`),
       ...this.walls.map(p => `${p.x},${p.y}`),
     ]);
-
     const freeCells: Point[] = [];
     for (let x = 0; x < this.cols; x++) {
       for (let y = 0; y < this.rows; y++) {
@@ -44,10 +38,44 @@ export class Board {
         }
       }
     }
+    return freeCells;
+  }
 
+  spawnAllFood(occupied: Point[]): void {
+    this.foods = [];
+    for (let i = 0; i < this.foodCount; i++) {
+      this.spawnOneFood(occupied);
+    }
+  }
+
+  spawnOneFood(occupied: Point[]): void {
+    const freeCells = this.getFreeCells(occupied);
     if (freeCells.length > 0) {
       this.foods.push(freeCells[Math.floor(Math.random() * freeCells.length)]);
     }
+  }
+
+  spawnAllPoison(count: number, occupied: Point[]): void {
+    this.poisonFoods = [];
+    for (let i = 0; i < count; i++) {
+      this.spawnOnePoison(occupied);
+    }
+  }
+
+  spawnOnePoison(occupied: Point[]): void {
+    const freeCells = this.getFreeCells(occupied);
+    if (freeCells.length > 0) {
+      this.poisonFoods.push(freeCells[Math.floor(Math.random() * freeCells.length)]);
+    }
+  }
+
+  eatPoisonAt(head: Point): boolean {
+    const idx = this.poisonFoods.findIndex(f => f.x === head.x && f.y === head.y);
+    if (idx !== -1) {
+      this.poisonFoods.splice(idx, 1);
+      return true;
+    }
+    return false;
   }
 
   isOutOfBounds(pos: Point): boolean {
@@ -64,21 +92,7 @@ export class Board {
   }
 
   spawnWalls(count: number, occupied: Point[]): void {
-    const occupiedSet = new Set([
-      ...occupied.map(p => `${p.x},${p.y}`),
-      ...this.foods.map(p => `${p.x},${p.y}`),
-      ...this.walls.map(p => `${p.x},${p.y}`),
-    ]);
-
-    const freeCells: Point[] = [];
-    for (let x = 0; x < this.cols; x++) {
-      for (let y = 0; y < this.rows; y++) {
-        if (!occupiedSet.has(`${x},${y}`)) {
-          freeCells.push({ x, y });
-        }
-      }
-    }
-
+    const freeCells = this.getFreeCells(occupied);
     for (let i = 0; i < count && freeCells.length > 0; i++) {
       const idx = Math.floor(Math.random() * freeCells.length);
       const cell = freeCells.splice(idx, 1)[0];

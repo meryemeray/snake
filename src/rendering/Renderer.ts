@@ -109,14 +109,14 @@ export class Renderer {
     }
   }
 
-  drawFoods(foods: Point[], timestamp: number): void {
+  drawFoods(foods: Point[], timestamp: number, color = COLORS.FOOD): void {
     this.foodPulse = timestamp;
     const cs = this.cellSize;
     const pulse = 0.85 + 0.15 * Math.sin(this.foodPulse * 0.005);
     const size = cs * pulse;
     const offset = (cs - size) / 2;
 
-    this.ctx.fillStyle = COLORS.FOOD;
+    this.ctx.fillStyle = color;
     for (const food of foods) {
       this.ctx.fillRect(
         food.x * cs + offset,

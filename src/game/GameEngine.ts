@@ -60,6 +60,7 @@ export class GameEngine {
   private lastTime = 0;
   private accumulator = 0;
   private tickInterval = 150;
+  private consecutivePoison = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     this.snake = new Snake(DEFAULT_GRID.cols, DEFAULT_GRID.rows);
@@ -301,7 +302,12 @@ export class GameEngine {
     this.direction = this.config.mode === 'MIRROR' ? 'LEFT' : 'RIGHT';
     this.input.reset(this.direction);
     this.board.clearWalls();
+    this.board.poisonFoods = [];
+    this.consecutivePoison = 0;
     this.board.spawnAllFood(this.snake.segments);
+    if (this.config.mode === 'POISON') {
+      this.board.spawnAllPoison(this.config.foodCount, this.snake.segments);
+    }
     this.phase = 'PLAYING';
     this.lastTime = performance.now();
     this.accumulator = 0;
@@ -333,7 +339,19 @@ export class GameEngine {
       return;
     }
 
-    if (this.board.eatFoodAt(newHead)) {
+    if (this.config.mode === 'POISON' && this.board.eatPoisonAt(newHead)) {
+      this.score = Math.max(0, this.score - 1);
+      this.consecutivePoison++;
+      this.particles.emit(newHead.x, newHead.y, 'death');
+      this.audio.playDie();
+      this.board.spawnOnePoison(this.snake.segments);
+
+      if (this.consecutivePoison >= 3) {
+        this.die();
+        return;
+      }
+    } else if (this.board.eatFoodAt(newHead)) {
+      this.consecutivePoison = 0;
       if (this.config.mode === 'SHRINK') {
         this.snake.shrink();
       } else {
@@ -357,6 +375,10 @@ export class GameEngine {
 
       if (this.config.mode === 'MAZE') {
         this.board.spawnWalls(2, this.snake.segments);
+      }
+
+      if (this.config.mode === 'POISON') {
+        this.board.spawnOnePoison(this.snake.segments);
       }
     }
   }
@@ -397,6 +419,9 @@ export class GameEngine {
     } else {
       this.renderer.drawWalls(this.board.walls);
       this.renderer.drawFoods(this.board.foods, timestamp);
+      if (this.board.poisonFoods.length > 0) {
+        this.renderer.drawFoods(this.board.poisonFoods, timestamp, COLORS.POISON);
+      }
       this.renderer.drawSnake(this.snake.segments, this.direction);
       this.renderer.drawParticles(this.particles);
       this.renderer.drawHUD(this.score, this.storage.getHighScore(), this.levelManager.level);
