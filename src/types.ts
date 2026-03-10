@@ -29,7 +29,12 @@ export interface GridPreset {
   cellSize: number;
 }
 
+export type GameMode = 'CLASSIC' | 'MIRROR';
+
+export const GAME_MODES: GameMode[] = ['CLASSIC', 'MIRROR'];
+
 export interface GameConfig {
   grid: GridPreset;
   foodCount: number;
+  mode: GameMode;
 }

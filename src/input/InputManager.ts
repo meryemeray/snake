@@ -85,8 +85,8 @@ export class InputManager {
     return this.currentDirection;
   }
 
-  reset(): void {
+  reset(direction: Direction = 'RIGHT'): void {
     this.queue = [];
-    this.currentDirection = 'RIGHT';
+    this.currentDirection = direction;
   }
 }

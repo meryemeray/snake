@@ -1,4 +1,4 @@
-import { Direction, GamePhase, GameConfig, GridPreset } from '../types';
+import { Direction, GamePhase, GameConfig, GridPreset, GAME_MODES } from '../types';
 import { GRID_PRESETS, FOOD_PRESETS, DEFAULT_GRID, COLORS, GRID_LIMITS, FOOD_LIMITS } from '../constants';
 import { Snake } from './Snake';
 import { Board } from './Board';
@@ -9,7 +9,14 @@ import { InputManager } from '../input/InputManager';
 import { AudioManager } from '../audio/AudioManager';
 import { ScoreStorage } from '../storage/ScoreStorage';
 
-type SettingsRow = 'grid' | 'food';
+type SettingsRow = 'mode' | 'grid' | 'food';
+
+const MIRROR_FLIP: Record<string, Direction> = {
+  UP: 'DOWN',
+  DOWN: 'UP',
+  LEFT: 'RIGHT',
+  RIGHT: 'LEFT',
+};
 
 function clamp(val: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, Math.floor(val)));
@@ -27,10 +34,11 @@ export class GameEngine {
   private score = 0;
   private direction: Direction = 'RIGHT';
 
-  private config: GameConfig = { grid: DEFAULT_GRID, foodCount: 1 };
+  private config: GameConfig = { grid: DEFAULT_GRID, foodCount: 1, mode: 'CLASSIC' };
+  private modeSelectIndex = 0;
   private gridSelectIndex = 0;
   private foodSelectIndex = 0;
-  private settingsRow: SettingsRow = 'grid';
+  private settingsRow: SettingsRow = 'mode';
 
   private customGridW = 30;
   private customGridH = 30;
@@ -148,17 +156,17 @@ export class GameEngine {
     const w = this.renderer.width;
     const gap = 10;
 
-    this.gridWidthInput.style.top = `${h * 0.40}px`;
+    this.gridWidthInput.style.top = `${h * 0.47}px`;
     this.gridWidthInput.style.left = `${w / 2 - 80 - gap / 2}px`;
     this.gridWidthInput.style.transform = 'none';
     this.gridWidthInput.style.width = '80px';
 
-    this.gridHeightInput.style.top = `${h * 0.40}px`;
+    this.gridHeightInput.style.top = `${h * 0.47}px`;
     this.gridHeightInput.style.left = `${w / 2 + gap / 2}px`;
     this.gridHeightInput.style.transform = 'none';
     this.gridHeightInput.style.width = '80px';
 
-    this.foodInput.style.top = `${h * 0.68}px`;
+    this.foodInput.style.top = `${h * 0.73}px`;
     this.foodInput.style.width = '80px';
 
     if (showGrid && this.settingsRow === 'grid') {
@@ -183,23 +191,32 @@ export class GameEngine {
     const inGridInput = this.isAnyGridInputFocused();
     const inFoodInput = document.activeElement === this.foodInput;
 
+    const ROWS: SettingsRow[] = ['mode', 'grid', 'food'];
+
     if (inGridInput || inFoodInput) {
       if (dir === 'UP' || dir === 'DOWN') {
         (document.activeElement as HTMLElement).blur();
-        this.settingsRow = this.settingsRow === 'grid' ? 'food' : 'grid';
+        const idx = ROWS.indexOf(this.settingsRow);
+        const next = dir === 'DOWN' ? (idx + 1) % ROWS.length : (idx - 1 + ROWS.length) % ROWS.length;
+        this.settingsRow = ROWS[next];
         this.updateInputVisibility();
       }
       return;
     }
 
     if (dir === 'UP' || dir === 'DOWN') {
-      this.settingsRow = this.settingsRow === 'grid' ? 'food' : 'grid';
+      const idx = ROWS.indexOf(this.settingsRow);
+      const next = dir === 'DOWN' ? (idx + 1) % ROWS.length : (idx - 1 + ROWS.length) % ROWS.length;
+      this.settingsRow = ROWS[next];
     }
 
     if (dir === 'LEFT' || dir === 'RIGHT') {
       const delta = dir === 'RIGHT' ? 1 : -1;
 
-      if (this.settingsRow === 'grid') {
+      if (this.settingsRow === 'mode') {
+        this.modeSelectIndex = (this.modeSelectIndex + delta + GAME_MODES.length) % GAME_MODES.length;
+        this.config.mode = GAME_MODES[this.modeSelectIndex];
+      } else if (this.settingsRow === 'grid') {
         this.gridSelectIndex = (this.gridSelectIndex + delta + GRID_PRESETS.length) % GRID_PRESETS.length;
         if (!this.isGridCustom()) {
           this.config.grid = GRID_PRESETS[this.gridSelectIndex];
@@ -274,11 +291,11 @@ export class GameEngine {
 
   private startGame(): void {
     this.snake.reset();
-    this.input.reset();
     this.levelManager.reset();
     this.particles.clear();
     this.score = 0;
-    this.direction = 'RIGHT';
+    this.direction = this.config.mode === 'MIRROR' ? 'LEFT' : 'RIGHT';
+    this.input.reset(this.direction);
     this.board.spawnAllFood(this.snake.segments);
     this.phase = 'PLAYING';
     this.lastTime = performance.now();
@@ -287,7 +304,9 @@ export class GameEngine {
   }
 
   private tick(): void {
-    this.direction = this.input.getNextDirection();
+    let dir = this.input.getNextDirection();
+    if (this.config.mode === 'MIRROR') dir = MIRROR_FLIP[dir] as Direction;
+    this.direction = dir;
     const newHead = this.snake.move(this.direction);
 
     if (this.board.isOutOfBounds(newHead) || this.snake.checkSelfCollision()) {
@@ -369,34 +388,39 @@ export class GameEngine {
 
   private drawSettingsScreen(): void {
     const h = this.renderer.height;
-    this.renderer.drawCenteredText('SETTINGS', h * 0.12, 14);
+    this.renderer.drawCenteredText('SETTINGS', h * 0.08, 14);
 
+    const modeActive = this.settingsRow === 'mode';
     const gridActive = this.settingsRow === 'grid';
     const foodActive = this.settingsRow === 'food';
 
-    this.renderer.drawCenteredText('GRID SIZE', h * 0.28, 8, gridActive ? COLORS.TEXT : COLORS.TEXT_DIM);
+    this.renderer.drawCenteredText('MODE', h * 0.18, 8, modeActive ? COLORS.TEXT : COLORS.TEXT_DIM);
+    const modeLabel = `< ${this.config.mode} >`;
+    this.renderer.drawCenteredText(modeLabel, h * 0.25, modeActive ? 10 : 8, modeActive ? COLORS.TEXT : COLORS.TEXT_DIM);
+
+    this.renderer.drawCenteredText('GRID SIZE', h * 0.36, 8, gridActive ? COLORS.TEXT : COLORS.TEXT_DIM);
     if (this.isGridCustom()) {
-      this.renderer.drawCenteredText('< CUSTOM >', h * 0.36, gridActive ? 10 : 8, gridActive ? COLORS.TEXT : COLORS.TEXT_DIM);
+      this.renderer.drawCenteredText('< CUSTOM >', h * 0.43, gridActive ? 10 : 8, gridActive ? COLORS.TEXT : COLORS.TEXT_DIM);
       const sizeStr = `${this.customGridW}x${this.customGridH}`;
-      this.renderer.drawCenteredText(sizeStr, h * 0.46, 6, COLORS.TEXT_DIM);
+      this.renderer.drawCenteredText(sizeStr, h * 0.50, 6, COLORS.TEXT_DIM);
     } else {
       const gridLabel = `< ${this.config.grid.label} >`;
       const gridDetail = `${this.config.grid.cols}x${this.config.grid.rows}`;
-      this.renderer.drawCenteredText(gridLabel, h * 0.36, gridActive ? 10 : 8, gridActive ? COLORS.TEXT : COLORS.TEXT_DIM);
-      this.renderer.drawCenteredText(gridDetail, h * 0.43, 6, COLORS.TEXT_DIM);
+      this.renderer.drawCenteredText(gridLabel, h * 0.43, gridActive ? 10 : 8, gridActive ? COLORS.TEXT : COLORS.TEXT_DIM);
+      this.renderer.drawCenteredText(gridDetail, h * 0.50, 6, COLORS.TEXT_DIM);
     }
 
-    this.renderer.drawCenteredText('FOOD COUNT', h * 0.55, 8, foodActive ? COLORS.TEXT : COLORS.TEXT_DIM);
+    this.renderer.drawCenteredText('FOOD COUNT', h * 0.61, 8, foodActive ? COLORS.TEXT : COLORS.TEXT_DIM);
     if (this.isFoodCustom()) {
-      this.renderer.drawCenteredText('< CUSTOM >', h * 0.63, foodActive ? 10 : 8, foodActive ? COLORS.TEXT : COLORS.TEXT_DIM);
-      this.renderer.drawCenteredText(`${this.customFoodCount}`, h * 0.70, 6, COLORS.TEXT_DIM);
+      this.renderer.drawCenteredText('< CUSTOM >', h * 0.68, foodActive ? 10 : 8, foodActive ? COLORS.TEXT : COLORS.TEXT_DIM);
+      this.renderer.drawCenteredText(`${this.customFoodCount}`, h * 0.75, 6, COLORS.TEXT_DIM);
     } else {
       const foodLabel = `< ${this.config.foodCount} >`;
-      this.renderer.drawCenteredText(foodLabel, h * 0.63, foodActive ? 10 : 8, foodActive ? COLORS.TEXT : COLORS.TEXT_DIM);
+      this.renderer.drawCenteredText(foodLabel, h * 0.68, foodActive ? 10 : 8, foodActive ? COLORS.TEXT : COLORS.TEXT_DIM);
     }
 
-    this.renderer.drawCenteredText('Press ENTER', h * 0.82, 8);
-    this.renderer.drawCenteredText('to play', h * 0.89, 8);
+    this.renderer.drawCenteredText('Press ENTER', h * 0.85, 8);
+    this.renderer.drawCenteredText('to play', h * 0.92, 8);
   }
 
   private drawPauseScreen(): void {
