@@ -313,7 +313,17 @@ export class GameEngine {
     this.direction = dir;
     const newHead = this.snake.move(this.direction);
 
-    if (this.board.isOutOfBounds(newHead) || this.snake.checkSelfCollision()) {
+    if (this.config.mode === 'NO WALLS') {
+      const grid = this.config.grid;
+      newHead.x = ((newHead.x % grid.cols) + grid.cols) % grid.cols;
+      newHead.y = ((newHead.y % grid.rows) + grid.rows) % grid.rows;
+    }
+
+    if (this.config.mode !== 'NO WALLS' && this.board.isOutOfBounds(newHead)) {
+      this.die();
+      return;
+    }
+    if (this.snake.checkSelfCollision()) {
       this.die();
       return;
     }
@@ -338,11 +348,6 @@ export class GameEngine {
 
       if (this.config.mode === 'SPEED') {
         this.tickInterval = Math.max(35, this.tickInterval - 2);
-      } else if (this.config.mode !== 'SHRINK') {
-        this.tickInterval = this.levelManager.getTickInterval(this.score);
-        if (this.levelManager.consumeLevelUp()) {
-          this.audio.playLevelUp();
-        }
       }
     }
   }
