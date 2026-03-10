@@ -300,7 +300,7 @@ export class GameEngine {
     this.phase = 'PLAYING';
     this.lastTime = performance.now();
     this.accumulator = 0;
-    this.tickInterval = this.levelManager.getTickInterval(0);
+    this.tickInterval = this.config.mode === 'SPEED' ? 120 : this.levelManager.getTickInterval(0);
   }
 
   private tick(): void {
@@ -321,9 +321,13 @@ export class GameEngine {
       this.particles.emit(newHead.x, newHead.y, 'eat');
       this.audio.playEat();
 
-      this.tickInterval = this.levelManager.getTickInterval(this.score);
-      if (this.levelManager.consumeLevelUp()) {
-        this.audio.playLevelUp();
+      if (this.config.mode === 'SPEED') {
+        this.tickInterval = Math.max(35, this.tickInterval - 2);
+      } else {
+        this.tickInterval = this.levelManager.getTickInterval(this.score);
+        if (this.levelManager.consumeLevelUp()) {
+          this.audio.playLevelUp();
+        }
       }
     }
   }
