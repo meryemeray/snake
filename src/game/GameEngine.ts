@@ -300,6 +300,7 @@ export class GameEngine {
     this.score = 0;
     this.direction = this.config.mode === 'MIRROR' ? 'LEFT' : 'RIGHT';
     this.input.reset(this.direction);
+    this.board.clearWalls();
     this.board.spawnAllFood(this.snake.segments);
     this.phase = 'PLAYING';
     this.lastTime = performance.now();
@@ -327,6 +328,10 @@ export class GameEngine {
       this.die();
       return;
     }
+    if (this.config.mode === 'MAZE' && this.board.isWall(newHead)) {
+      this.die();
+      return;
+    }
 
     if (this.board.eatFoodAt(newHead)) {
       if (this.config.mode === 'SHRINK') {
@@ -348,6 +353,10 @@ export class GameEngine {
 
       if (this.config.mode === 'SPEED') {
         this.tickInterval = Math.max(35, this.tickInterval - 2);
+      }
+
+      if (this.config.mode === 'MAZE') {
+        this.board.spawnWalls(2, this.snake.segments);
       }
     }
   }
@@ -386,6 +395,7 @@ export class GameEngine {
     } else if (this.phase === 'SETTINGS') {
       this.drawSettingsScreen();
     } else {
+      this.renderer.drawWalls(this.board.walls);
       this.renderer.drawFoods(this.board.foods, timestamp);
       this.renderer.drawSnake(this.snake.segments, this.direction);
       this.renderer.drawParticles(this.particles);

@@ -101,6 +101,14 @@ export class Renderer {
     }
   }
 
+  drawWalls(walls: Point[]): void {
+    const cs = this.cellSize;
+    this.ctx.fillStyle = COLORS.WALL;
+    for (const w of walls) {
+      this.ctx.fillRect(w.x * cs, w.y * cs, cs, cs);
+    }
+  }
+
   drawFoods(foods: Point[], timestamp: number): void {
     this.foodPulse = timestamp;
     const cs = this.cellSize;

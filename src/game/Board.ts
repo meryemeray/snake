@@ -2,6 +2,7 @@ import { Point } from '../types';
 
 export class Board {
   foods: Point[] = [];
+  walls: Point[] = [];
   private cols: number;
   private rows: number;
   private foodCount: number;
@@ -32,6 +33,7 @@ export class Board {
     const occupiedSet = new Set([
       ...occupied.map(p => `${p.x},${p.y}`),
       ...this.foods.map(p => `${p.x},${p.y}`),
+      ...this.walls.map(p => `${p.x},${p.y}`),
     ]);
 
     const freeCells: Point[] = [];
@@ -59,5 +61,36 @@ export class Board {
       return true;
     }
     return false;
+  }
+
+  spawnWalls(count: number, occupied: Point[]): void {
+    const occupiedSet = new Set([
+      ...occupied.map(p => `${p.x},${p.y}`),
+      ...this.foods.map(p => `${p.x},${p.y}`),
+      ...this.walls.map(p => `${p.x},${p.y}`),
+    ]);
+
+    const freeCells: Point[] = [];
+    for (let x = 0; x < this.cols; x++) {
+      for (let y = 0; y < this.rows; y++) {
+        if (!occupiedSet.has(`${x},${y}`)) {
+          freeCells.push({ x, y });
+        }
+      }
+    }
+
+    for (let i = 0; i < count && freeCells.length > 0; i++) {
+      const idx = Math.floor(Math.random() * freeCells.length);
+      const cell = freeCells.splice(idx, 1)[0];
+      this.walls.push(cell);
+    }
+  }
+
+  isWall(pos: Point): boolean {
+    return this.walls.some(w => w.x === pos.x && w.y === pos.y);
+  }
+
+  clearWalls(): void {
+    this.walls = [];
   }
 }

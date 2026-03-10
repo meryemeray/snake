@@ -29,9 +29,9 @@ export interface GridPreset {
   cellSize: number;
 }
 
-export type GameMode = 'CLASSIC' | 'MIRROR' | 'SPEED' | 'SHRINK' | 'NO WALLS';
+export type GameMode = 'CLASSIC' | 'MIRROR' | 'SPEED' | 'SHRINK' | 'NO WALLS' | 'MAZE';
 
-export const GAME_MODES: GameMode[] = ['CLASSIC', 'MIRROR', 'SPEED', 'SHRINK', 'NO WALLS'];
+export const GAME_MODES: GameMode[] = ['CLASSIC', 'MIRROR', 'SPEED', 'SHRINK', 'NO WALLS', 'MAZE'];
 
 export interface GameConfig {
   grid: GridPreset;

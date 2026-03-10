@@ -24,6 +24,7 @@ export const COLORS = {
   TEXT_DIM:   '#306230',
   OVERLAY:    'rgba(15, 56, 15, 0.85)',
   HIGHLIGHT:  '#9bbc0f',
+  WALL:       '#306230',
 };
 
 export const OPPOSITE: Record<string, string> = {
